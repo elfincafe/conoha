@@ -1,2 +1,3 @@
-# conoha
-Conoha API
+# Conoha
+Conoha is Conoha VPS API client.
+
