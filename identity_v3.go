@@ -1,4 +1,4 @@
-package v3
+package conoha
 
 import (
 	"encoding/json"
@@ -91,9 +91,11 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 		for k2, v2 := range v1.(map[string]any) {
 			if k2 == "issued_at" {
 				api.IssuedAt, err = time.Parse(time.RFC3339Nano, v2.(string))
+				api.IssuedAt = api.IssuedAt.In(time.FixedZone("JST", 9*60*60))
 				continue
 			} else if k2 == "expires_at" {
 				api.ExpiredAt, err = time.Parse(time.RFC3339Nano, v2.(string))
+				api.ExpiredAt = api.ExpiredAt.In(time.FixedZone("JST", 9*60*60))
 				continue
 			} else if k2 == "user" {
 				for k3, v3 := range v2.(map[string]any) {
@@ -114,20 +116,17 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 				}
 				continue
 			} else if k2 == "catalog" {
-				for _, v3 := range v2.([]map[string]any) {
-					for k4, v4 := range v3 {
-						typ := ""
-						if k4 == "type" {
-							typ = v4.(string)
-							continue
-						} else if k4 != "endpoints" {
-							continue
-						}
-						for k5, v5 := range v4.(map[string]string) {
+				for _, v3 := range v2.([]any) {
+					typ := ""
+					if _, ok := v3.(map[string]any)["type"]; ok {
+						typ = v3.(map[string]any)["type"].(string)
+					}
+					for _, v4 := range v3.(map[string]any)["endpoints"].([]any) {
+						for k5, v5 := range v4.(map[string]any) {
 							if k5 != "url" {
 								continue
 							}
-							u, _ := url.Parse(v5)
+							u, _ := url.Parse(v5.(string))
 							switch typ {
 							case "identity":
 								api.Endpoints.Identity = u
@@ -154,6 +153,5 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 			}
 		}
 	}
-
 	return res, nil
 }
