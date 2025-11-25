@@ -90,12 +90,12 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 		}
 		for k2, v2 := range v1.(map[string]any) {
 			if k2 == "issued_at" {
-				api.IssuedAt, err = time.Parse(time.RFC3339Nano, v2.(string))
-				api.IssuedAt = api.IssuedAt.In(time.FixedZone("JST", 9*60*60))
+				api.IssuedAt, _ = time.Parse(time.RFC3339Nano, v2.(string))
+				api.IssuedAt = toJst(api.IssuedAt)
 				continue
 			} else if k2 == "expires_at" {
-				api.ExpiredAt, err = time.Parse(time.RFC3339Nano, v2.(string))
-				api.ExpiredAt = api.ExpiredAt.In(time.FixedZone("JST", 9*60*60))
+				api.ExpiredAt, _ = time.Parse(time.RFC3339Nano, v2.(string))
+				api.ExpiredAt = toJst(api.ExpiredAt)
 				continue
 			} else if k2 == "user" {
 				for k3, v3 := range v2.(map[string]any) {

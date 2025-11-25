@@ -42,6 +42,10 @@ type (
 		S3            *url.URL `json:"s3,omitempty"`
 		Database      *url.URL `json:"url,omitempty"`
 	}
+	ConohaError struct {
+		Code  int    `json:"code"`
+		Error string `json:"error"`
+	}
 )
 
 func NewV3() *V3 {
@@ -58,4 +62,8 @@ func NewV2() *V2 {
 		ExpiredAt: time.Date(1970, 1, 1, 9, 0, 0, 0, time.FixedZone("JST", 9*60*60)),
 		Endpoints: Endpoint{},
 	}
+}
+
+func toJst(t time.Time) time.Time {
+	return t.In(time.FixedZone("JST", 9*60*60))
 }
