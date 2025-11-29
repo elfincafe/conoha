@@ -80,6 +80,13 @@ type (
 	MountIsoImageResponse struct {
 		AdminPass string
 	}
+	PublishConsoleUrlResponse struct {
+		RemoteConsole struct {
+			Protocol string `json:"protocol"`
+			Type     string `json:"type"`
+			Url      string `json:"url"`
+		} `json:"remote_console"`
+	}
 )
 
 func (api *V3) GetServers() (*GetServersResponse, error) {
@@ -264,4 +271,45 @@ func (api *V3) UnmountIsoImage(serverId string) (*MountIsoImageResponse, error) 
 		return nil, err
 	}
 	return &v, nil
+}
+
+func (api *V3) publishConsoleUrl(serverId, protocol, typ string) (*PublishConsoleUrlResponse, error) {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/remote-consoles`, serverId)
+	body := fmt.Sprintf(`{
+		"remote_console": {
+			"protocol": "%s",
+			"type": "%s"
+		}
+	}`, protocol, typ)
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v PublishConsoleUrlResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+func (api *V3) PublishConsoleUrlOnVnc(serverId string) (*PublishConsoleUrlResponse, error) {
+	return api.publishConsoleUrl(serverId, "vnc", "novnc")
+}
+
+func (api *V3) PublishConsoleUrlOnSerial(serverId string) (*PublishConsoleUrlResponse, error) {
+	return api.publishConsoleUrl(serverId, "serial", "serial")
+}
+
+func (api *V3) PublishConsoleUrlOnWebSocket(serverId string) (*PublishConsoleUrlResponse, error) {
+	return api.publishConsoleUrl(serverId, "web", "serial")
 }
