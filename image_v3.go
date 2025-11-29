@@ -3,6 +3,7 @@ package conoha
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -42,24 +43,21 @@ type (
 func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 	endpoint := api.Endpoints.Image
 	endpoint.Path = "/v2/images"
-	body := `
-		{
-			"name": "###NAME###",
-			"disk_format": "iso",
-			"hw_rescue_bus": "ide",
-			"hw_rescue_device": "cdrom",
-			"container_format": "bare"
-		}
-  	`
+	body := fmt.Sprintf(`{
+		"name": "%s",
+		"disk_format": "iso",
+		"hw_rescue_bus": "ide",
+		"hw_rescue_device": "cdrom",
+		"container_format": "bare"
+  	}`, name)
 	if len(name) == 0 {
 		u, _ := uuid.NewRandom()
 		name = u.String()
 	}
 	name = ""
-	body = strings.ReplaceAll(body, "###NAME###", name)
 	client := annette.New(endpoint)
-	client.SetHeader("X-Auth-Token", api.Token)
-	res, err := client.Post(body)
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -77,4 +75,25 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
 	return &v, err
+}
+
+func (api *V3) UploadIsoImage(imageId, path string) error {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = fmt.Sprintf("/v2/images/%s/file", imageId)
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	client := annette.New(endpoint)
+	res, err := client.UploadByPut(f)
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus204() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
 }

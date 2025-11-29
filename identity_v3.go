@@ -2,6 +2,7 @@ package conoha
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -10,60 +11,50 @@ import (
 )
 
 func (api *V3) PublishTokenById(uri, userId, password, tenantId string) (*annette.Response, error) {
-	body := `
-		{
-			"auth": {
-				"identity": {
-					"methods": [
-						"password"
-					],
-					"password": {
-						"user": {
-						"id": "###USER_ID###",
-						"password": "###PASSWORD###"
-						}
+	body := fmt.Sprintf(`{
+		"auth": {
+			"identity": {
+				"methods": [
+					"password"
+				],
+				"password": {
+					"user": {
+					"id": "%s",
+					"password": "%s"
 					}
-				},
-				"scope": {
-					"project": {
-						"id": "###TENANT_ID###"
-					}
+				}
+			},
+			"scope": {
+				"project": {
+					"id": "%s"
 				}
 			}
 		}
-  	`
-	body = strings.ReplaceAll(body, "###USER_ID###", userId)
-	body = strings.ReplaceAll(body, "###PASSWORD###", password)
-	body = strings.ReplaceAll(body, "###TENANT_ID###", tenantId)
+  	}`, userId, password, tenantId)
 	return api.publishToken(uri, body)
 }
 
 func (api *V3) PublishTokenByName(uri, userName, password, tenantName string) (*annette.Response, error) {
-	body := `
-		{
-			"auth": {
-				"identity": {
-					"methods": [
-						"password"
-					],
-					"password": {
-						"user": {
-						"name": "###USER_NAME###",
-						"password": "###PASSWORD###"
-						}
+	body := fmt.Sprintf(`{
+		"auth": {
+			"identity": {
+				"methods": [
+					"password"
+				],
+				"password": {
+					"user": {
+					"name": "%s",
+					"password": "%s"
 					}
-				},
-				"scope": {
-					"project": {
-						"name": "###TENANT_NAME"
-					}
+				}
+			},
+			"scope": {
+				"project": {
+					"name": "%s"
 				}
 			}
 		}
-	`
-	body = strings.ReplaceAll(body, "###USER_NAME###", userName)
-	body = strings.ReplaceAll(body, "###PASSWORD###", password)
-	body = strings.ReplaceAll(body, "###TENANT_NAME###", tenantName)
+	}`, userName, password, tenantName)
 	return api.publishToken(uri, body)
 }
 
@@ -73,7 +64,7 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 		return nil, err
 	}
 	client := annette.New(u)
-	res, err := client.Post(body)
+	res, err := client.Post(strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
