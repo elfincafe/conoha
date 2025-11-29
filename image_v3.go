@@ -56,6 +56,7 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 	}
 	name = ""
 	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
 	res, err := client.Post(strings.NewReader(body))
 	if err != nil {
