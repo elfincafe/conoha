@@ -67,8 +67,7 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
 	}
 	var v CreateIsoImageResponse
-	content := res.Binary()
-	err = json.Unmarshal(content, &v)
+	err = json.Unmarshal(res.Binary(), &v)
 	if err != nil {
 		return nil, err
 	}
