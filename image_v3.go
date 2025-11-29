@@ -85,6 +85,9 @@ func (api *V3) UploadIsoImage(imageId, path string) error {
 	}
 	defer f.Close()
 	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("Content-Type", "application/octet-stream")
+	client.Header.Set("X-Auth-Token", api.Token)
 	res, err := client.UploadByPut(f)
 	if err != nil {
 		return err
