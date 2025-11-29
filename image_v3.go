@@ -50,11 +50,10 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 		"hw_rescue_device": "cdrom",
 		"container_format": "bare"
   	}`, name)
-	if len(name) == 0 {
+	if name == "" {
 		u, _ := uuid.NewRandom()
 		name = u.String()
 	}
-	name = ""
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
