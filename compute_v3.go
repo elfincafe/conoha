@@ -77,6 +77,9 @@ type (
 			} `json:"os-extended-volumes:volumes_attached"`
 		} `json:"server"`
 	}
+	MountIsoImageResponse struct {
+		AdminPass string
+	}
 )
 
 func (api *V3) GetServers() (*GetServersResponse, error) {
@@ -202,6 +205,60 @@ func (api *V3) GetServer(id string) (*GetServerResponse, error) {
 		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
 	}
 	var v GetServerResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+func (api *V3) MountIsoImage(serverId, imageId string) (*MountIsoImageResponse, error) {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
+	body := fmt.Sprintf(`{
+		"rescue": {"rescue_image_ref": "%s"}
+	}`, imageId)
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("Content-Type", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus202() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v MountIsoImageResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+func (api *V3) UnmountIsoImage(serverId string) (*MountIsoImageResponse, error) {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
+	body := `{
+		"unrescue": null
+	}`
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("Content-Type", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus202() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v MountIsoImageResponse
 	err = json.Unmarshal(res.Binary(), &v)
 	if err != nil {
 		return nil, err
