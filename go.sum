@@ -1,2 +1,6 @@
 github.com/elfincafe/annette v0.0.2 h1:xeqP04YdNqJfbNPBZy3BQ7TLRjCXllTmtJ4xGSXTNjU=
 github.com/elfincafe/annette v0.0.2/go.mod h1:8bT5TtWnTSeeCUZSnBPZyFmcSYAmx1EShiV9lSLzNMc=
+github.com/elfincafe/annette v0.0.3 h1:WkGyhMx6VTkAA+P8tRCsObpwiVs6dd8e5T7NYcriCJ0=
+github.com/elfincafe/annette v0.0.3/go.mod h1:8bT5TtWnTSeeCUZSnBPZyFmcSYAmx1EShiV9lSLzNMc=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
