@@ -3,6 +3,7 @@ package conoha
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -30,7 +31,7 @@ type (
 		OsHidden        bool      `json:"os_hidden"`
 		OsHashAlgo      string    `json:"os_hash_algo"`
 		OsHashValue     string    `json:"os_hash_value"`
-		Id              string    `json:"id"`
+		Id              uuid.UUID `json:"id"`
 		CreatedAt       time.Time `json:"created_at"`
 		UpdatedAt       time.Time `json:"updated_at"`
 		Tags            []string  `json:"tags"`
@@ -38,11 +39,69 @@ type (
 		File            string    `json:"file"`
 		Schema          string    `json:"schema"`
 	}
+	GetImagesResponse struct {
+		Images []struct {
+			Status          string    `json:"status"`
+			Name            string    `json:"name"`
+			Tags            []string  `json:"tags"`
+			ContainerFormat string    `json:"container_format"`
+			CreatedAt       time.Time `json:"created_at"`
+			DiskFormat      string    `json:"disk_format"`
+			UpdatedAt       time.Time `json:"updated_at"`
+			Visibility      string    `json:"visibility"`
+			Self            string    `json:"self"`
+			MinDisk         int       `json:"min_disk"`
+			Protected       bool      `json:"protected"`
+			Id              uuid.UUID `json:"id"`
+			File            string    `json:"file"`
+			Checksum        string    `json:"checksum"`
+			OsType          string    `json:"os_type"`
+			OsHashAlgo      string    `json:"os_hash_algo"`
+			OsHashValue     string    `json:"os_hash_value"`
+			OsHidden        bool      `json:"os_hidden"`
+			Owner           string    `json:"owner"`
+			Size            int       `json:"size"`
+			MinRam          int       `json:"min_ram"`
+			Schema          string    `json:"schema"`
+			VirtualSize     int       `json:"virtual_size"`
+			Architecture    string    `json:"architecture"`
+		} `json:"images"`
+		Schema string `json:"schema"`
+		First  string `json:"first"`
+	}
 )
+
+func (api *V3) UploadIsoImage(imageId uuid.UUID, path string) error {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = fmt.Sprintf("/v2/images/%s/file", imageId.String())
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("Content-Type", "application/octet-stream")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.UploadByPut(f)
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus204() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
+}
 
 func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 	endpoint := api.Endpoints.Image
 	endpoint.Path = "/v2/images"
+	if name == "" {
+		u, _ := uuid.NewRandom()
+		name = u.String()
+	}
 	body := fmt.Sprintf(`{
 		"name": "%s",
 		"disk_format": "iso",
@@ -50,10 +109,6 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 		"hw_rescue_device": "cdrom",
 		"container_format": "bare"
   	}`, name)
-	if name == "" {
-		u, _ := uuid.NewRandom()
-		name = u.String()
-	}
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
@@ -76,26 +131,54 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 	return &v, err
 }
 
-func (api *V3) UploadIsoImage(imageId, path string) error {
+func (api *V3) GetImages(args map[string]string) (*GetImagesResponse, error) {
 	endpoint := api.Endpoints.Image
-	endpoint.Path = fmt.Sprintf("/v2/images/%s/file", imageId)
-	f, err := os.Open(path)
-	if err != nil {
-		return err
+	endpoint.Path = "/v2/images"
+	q := url.Values{}
+	for k, v := range args {
+		q.Set(k, v)
 	}
-	defer f.Close()
+	endpoint.RawQuery = q.Encode()
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
-	client.Header.Set("Content-Type", "application/octet-stream")
 	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.UploadByPut(f)
+	res, err := client.Get()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if !res.IsStatus204() {
+	if !res.IsStatus200() {
 		var v ConohaError
 		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
 	}
-	return nil
+	var v GetImagesResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	for k, i := range v.Images {
+		v.Images[k].CreatedAt = toJst(i.CreatedAt)
+		v.Images[k].UpdatedAt = toJst(i.UpdatedAt)
+	}
+	return &v, err
+}
+
+func (api *V3) GetUsedImageCapacity() {
+
+}
+
+func (api *V3) GetImageCapacity() {
+
+}
+
+func (api *V3) UpdateImageCapacity() {
+
+}
+
+func (api *V3) DeleteImage() {
+
+}
+
+func (api *V3) GetImage() {
+
 }
