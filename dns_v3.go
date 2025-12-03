@@ -3,6 +3,7 @@ package conoha
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -155,10 +156,10 @@ func (api *V3) CreateDomain(domain, email string, ttl int) (*CreateDomainRespons
 	endpoint := api.Endpoints.Dns
 	endpoint.Path = "/v1/domains"
 	body := fmt.Sprintf(`{
-	"name":"%s",
+		"name":"%s",
 		"ttl": %d,
 		"email": "%s"
-	}`, ttl, email)
+	}`, domain, ttl, email)
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("Content-Type", "application/json")
@@ -255,12 +256,12 @@ func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, w
 	req := recordRequest{}
 	// Validate
 	if name == "" {
-		return nil, fmt.Errorf(`argument "name" is required.`)
+		return nil, errors.New(`argument "name" is required`)
 	} else {
 		req.Name = name
 	}
 	if data == "" {
-		return nil, fmt.Errorf(`argument "data" is required.`)
+		return nil, errors.New(`argument "data" is required`)
 	} else {
 		req.Data = data
 	}
@@ -359,6 +360,9 @@ func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, p
 		return nil, fmt.Errorf(`unknown record type "%s"`, recType)
 	}
 	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
 	res, err := client.Put(bytes.NewReader(body))
 	if err != nil {
 		return nil, err
