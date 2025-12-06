@@ -13,67 +13,61 @@ import (
 )
 
 type (
-	CreateIsoImageResponse struct {
-		HwRescueBus     string    `json:"hw_rescue_bus"`
-		HwRescueDevice  string    `json:"hw_rescue_device"`
-		Name            string    `json:"name"`
-		DiskFormat      string    `json:"disk_format"`
-		ContainerFormat string    `json:"container_format"`
-		Visibility      string    `json:"visibility"`
-		Size            int       `json:"size"`
-		VirtualSize     int       `json:"virtual_size"`
-		Status          string    `json:"status"`
-		Checksum        int       `json:"checksum"`
-		Protected       bool      `json:"protected"`
-		MinRam          int       `json:"min_ram"`
-		MinDisk         int       `json:"min_disk"`
-		Owner           string    `json:"owner"`
-		OsHidden        bool      `json:"os_hidden"`
-		OsHashAlgo      string    `json:"os_hash_algo"`
-		OsHashValue     string    `json:"os_hash_value"`
-		Id              uuid.UUID `json:"id"`
-		CreatedAt       time.Time `json:"created_at"`
-		UpdatedAt       time.Time `json:"updated_at"`
-		Tags            []string  `json:"tags"`
-		Self            string    `json:"self"`
-		File            string    `json:"file"`
-		Schema          string    `json:"schema"`
+	image struct {
+		HwRescueBus            string    `json:"hw_rescue_bus,omitempty"`
+		HwRescueDevice         string    `json:"hw_rescue_device,omitempty"`
+		HwVifMultiqueueEnabled bool      `json:"hw_vif_multiqueue_enabled,omitempty"`
+		HwQemuGuestAgent       bool      `json:"hw_qemu_guest_agent,omitempty"`
+		HwVideoModel           string    `json:"hw_video_model,omitempty"`
+		Architecture           string    `json:"architecture,omitempty"`
+		Bootable               bool      `json:"bootable"`
+		Name                   string    `json:"name"`
+		DiskFormat             string    `json:"disk_format"`
+		ContainerFormat        string    `json:"container_format"`
+		Visibility             string    `json:"visibility"`
+		Size                   int       `json:"size"`
+		VirtualSize            int       `json:"virtual_size"`
+		Status                 string    `json:"status"`
+		Checksum               int       `json:"checksum"`
+		Protected              bool      `json:"protected"`
+		MinRam                 int       `json:"min_ram"`
+		MinDisk                int       `json:"min_disk"`
+		Owner                  string    `json:"owner"`
+		OsType                 string    `json:"os_type,omitempty"`
+		OsHidden               bool      `json:"os_hidden"`
+		OsHashAlgo             string    `json:"os_hash_algo"`
+		OsHashValue            string    `json:"os_hash_value"`
+		Id                     uuid.UUID `json:"id"`
+		CreatedAt              time.Time `json:"created_at"`
+		UpdatedAt              time.Time `json:"updated_at"`
+		Tags                   []string  `json:"tags"`
+		Self                   string    `json:"self"`
+		File                   string    `json:"file"`
+		Schema                 string    `json:"schema"`
 	}
-	GetImagesResponse struct {
+	CreateIsoImageResponse image
+	GetImagesResponse      struct {
+		Images []image `json:"images"`
+		Schema string  `json:"schema"`
+		First  string  `json:"first"`
+	}
+	GetUsedImageCapacityResponse struct {
 		Images []struct {
-			Status          string    `json:"status"`
-			Name            string    `json:"name"`
-			Tags            []string  `json:"tags"`
-			ContainerFormat string    `json:"container_format"`
-			CreatedAt       time.Time `json:"created_at"`
-			DiskFormat      string    `json:"disk_format"`
-			UpdatedAt       time.Time `json:"updated_at"`
-			Visibility      string    `json:"visibility"`
-			Self            string    `json:"self"`
-			MinDisk         int       `json:"min_disk"`
-			Protected       bool      `json:"protected"`
-			Id              uuid.UUID `json:"id"`
-			File            string    `json:"file"`
-			Checksum        string    `json:"checksum"`
-			OsType          string    `json:"os_type"`
-			OsHashAlgo      string    `json:"os_hash_algo"`
-			OsHashValue     string    `json:"os_hash_value"`
-			OsHidden        bool      `json:"os_hidden"`
-			Owner           string    `json:"owner"`
-			Size            int       `json:"size"`
-			MinRam          int       `json:"min_ram"`
-			Schema          string    `json:"schema"`
-			VirtualSize     int       `json:"virtual_size"`
-			Architecture    string    `json:"architecture"`
-		} `json:"images"`
-		Schema string `json:"schema"`
-		First  string `json:"first"`
+			Size int
+		} ``
 	}
+	GetImageCapacityResponse struct {
+		Quota []struct {
+			ImageSize string `json:"image_size"`
+		} `json:"quota"`
+	}
+	UpdateImageCapacityResponse GetImageCapacityResponse
+	GetImageResponse            image
 )
 
 func (api *V3) UploadIsoImage(imageId uuid.UUID, path string) error {
 	endpoint := api.Endpoints.Image
-	endpoint.Path = fmt.Sprintf("/v2/images/%s/file", imageId.String())
+	endpoint.Path = fmt.Sprintf("/v2/images/%s/file", imageId)
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -163,22 +157,115 @@ func (api *V3) GetImages(args map[string]string) (*GetImagesResponse, error) {
 	return &v, err
 }
 
-func (api *V3) GetUsedImageCapacity() {
-
+func (api *V3) GetUsedImageCapacity() (*GetUsedImageCapacityResponse, error) {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = "/v2/images/total"
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Get()
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v GetUsedImageCapacityResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, err
 }
 
-func (api *V3) GetImageCapacity() {
-
+func (api *V3) GetImageCapacity() (*GetImageCapacityResponse, error) {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = "/v2/quota"
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Get()
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v GetImageCapacityResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, err
 }
 
-func (api *V3) UpdateImageCapacity() {
-
+func (api *V3) UpdateImageCapacity(imageSize string) (*UpdateImageCapacityResponse, error) {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = "/v2/quota"
+	body := fmt.Sprintf(`{
+		"quota": {"image_size": "%s"}
+	}`, imageSize)
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Put(strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v UpdateImageCapacityResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, err
 }
 
-func (api *V3) DeleteImage() {
-
+func (api *V3) DeleteImage(imageId uuid.UUID) error {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = fmt.Sprintf("/v2/images/%s", imageId)
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Delete()
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
 }
 
-func (api *V3) GetImage() {
-
+func (api *V3) GetImage(imageId uuid.UUID) (*GetImageResponse, error) {
+	endpoint := api.Endpoints.Image
+	endpoint.Path = fmt.Sprintf("/v2/images/%s", imageId)
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Get()
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v GetImageResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, err
 }

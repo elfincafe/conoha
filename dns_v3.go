@@ -106,7 +106,7 @@ func (api *V3) GetDomains(limit, offset int, sort, key string) (*GetDomainsRespo
 
 func (api *V3) DeleteDomain(domainId uuid.UUID) error {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf("/v1/domains/%s", domainId.String())
+	endpoint.Path = fmt.Sprintf("/v1/domains/%s", domainId)
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
@@ -124,7 +124,7 @@ func (api *V3) DeleteDomain(domainId uuid.UUID) error {
 
 func (api *V3) UpdateDomain(domainId uuid.UUID, email string, ttl int) (*UpdateDomainResponse, error) {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf("/v1/domains/%s", domainId.String())
+	endpoint.Path = fmt.Sprintf("/v1/domains/%s", domainId)
 	body := fmt.Sprintf(`{
 		"ttl": %d,
 		"email": "%s"
@@ -185,7 +185,7 @@ func (api *V3) CreateDomain(domain, email string, ttl int) (*CreateDomainRespons
 
 func (api *V3) GetDomain(domainId uuid.UUID) (*GetDomainResponse, error) {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf(`/v1/domains/%s`, domainId.String())
+	endpoint.Path = fmt.Sprintf(`/v1/domains/%s`, domainId)
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
@@ -210,7 +210,7 @@ func (api *V3) GetDomain(domainId uuid.UUID) (*GetDomainResponse, error) {
 
 func (api *V3) GetRecords(domainId uuid.UUID, limit, offset int, sort, key string) (*GetRecordsResponse, error) {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records`, domainId.String())
+	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records`, domainId)
 	if limit < 1 {
 		limit = 10
 	}
@@ -282,7 +282,7 @@ func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, w
 	}
 
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records`, domainId.String())
+	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records`, domainId)
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -312,7 +312,7 @@ func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, w
 
 func (api *V3) DeleteRecord(domainId, recordId uuid.UUID) error {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf("/v1/domains/%s/records/%s", domainId.String(), recordId.String())
+	endpoint.Path = fmt.Sprintf("/v1/domains/%s/records/%s", domainId, recordId)
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
@@ -330,7 +330,7 @@ func (api *V3) DeleteRecord(domainId, recordId uuid.UUID) error {
 
 func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, priority, weight, port string) (*UpdateRecordResponse, error) {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf("/v1/domains/%s/records/%s", domainId.String(), recordId.String())
+	endpoint.Path = fmt.Sprintf("/v1/domains/%s/records/%s", domainId, recordId)
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("Content-Type", "application/json")
@@ -384,7 +384,7 @@ func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, p
 
 func (api *V3) GetRecord(domainId, recordId uuid.UUID) (*GetRecordResponse, error) {
 	endpoint := api.Endpoints.Dns
-	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records/%s`, domainId.String(), recordId.String())
+	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records/%s`, domainId, recordId)
 	client := annette.New(endpoint)
 	client.Header.Set("Accept", "application/json")
 	client.Header.Set("X-Auth-Token", api.Token)
@@ -405,5 +405,4 @@ func (api *V3) GetRecord(domainId, recordId uuid.UUID) (*GetRecordResponse, erro
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
 	return &v, err
-
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/elfincafe/annette"
+	"github.com/google/uuid"
 )
 
 type (
@@ -89,137 +90,8 @@ type (
 	}
 )
 
-func (api *V3) GetServers() (*GetServersResponse, error) {
-	endpoint := api.Endpoints.Compute
-	endpoint.Path = "/v2.1/servers"
-	client := annette.New(endpoint)
-	client.Header.Set("Accept", "application/json")
-	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.Get()
-	if err != nil {
-		return nil, err
-	}
-	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
-	}
-	var v GetServersResponse
-	err = json.Unmarshal(res.Binary(), &v)
-	if err != nil {
-		return nil, err
-	}
-	return &v, nil
-}
-
-func (api *V3) StartServer(serverId string) error {
-	endpoint := api.Endpoints.Compute
-	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
-	body := `{
-		"os-start": null
-	}`
-	client := annette.New(endpoint)
-	client.Header.Set("Content-Type", "application/json")
-	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.Post(strings.NewReader(body))
-	if err != nil {
-		return err
-	}
-	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
-	}
-	return nil
-}
-
-func (api *V3) StopServer(serverId string) error {
-	endpoint := api.Endpoints.Compute
-	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
-	body := `{
-		"os-stop": null
-	}`
-	client := annette.New(endpoint)
-	client.Header.Set("Content-Type", "application/json")
-	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.Post(strings.NewReader(body))
-	if err != nil {
-		return err
-	}
-	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
-	}
-	return nil
-}
-
-func (api *V3) RebootServer(serverId string) error {
-	endpoint := api.Endpoints.Compute
-	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
-	body := `{
-		"reboot": {"type": "SOFT"}
-	}`
-	client := annette.New(endpoint)
-	client.Header.Set("Content-Type", "application/json")
-	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.Post(strings.NewReader(body))
-	if err != nil {
-		return err
-	}
-	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
-	}
-	return nil
-}
-
-func (api *V3) ForceShutdownServer(serverId string) error {
-	endpoint := api.Endpoints.Compute
-	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
-	body := `{
-		"os-stop": {"force_shutdown": true}
-	}`
-	client := annette.New(endpoint)
-	client.Header.Set("Content-Type", "application/json")
-	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.Post(strings.NewReader(body))
-	if err != nil {
-		return err
-	}
-	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
-	}
-	return nil
-}
-
-func (api *V3) GetServer(id string) (*GetServerResponse, error) {
-	endpoint := api.Endpoints.Compute
-	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s`, id)
-	client := annette.New(endpoint)
-	client.Header.Set("Accept", "application/json")
-	client.Header.Set("X-Auth-Token", api.Token)
-	res, err := client.Get()
-	if err != nil {
-		return nil, err
-	}
-	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
-	}
-	var v GetServerResponse
-	err = json.Unmarshal(res.Binary(), &v)
-	if err != nil {
-		return nil, err
-	}
-	return &v, nil
-}
-
-func (api *V3) MountIsoImage(serverId, imageId string) (*MountIsoImageResponse, error) {
+// ISOイメージ挿入
+func (api *V3) MountIsoImage(serverId, imageId uuid.UUID) (*MountIsoImageResponse, error) {
 	endpoint := api.Endpoints.Compute
 	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
 	body := fmt.Sprintf(`{
@@ -246,7 +118,8 @@ func (api *V3) MountIsoImage(serverId, imageId string) (*MountIsoImageResponse, 
 	return &v, nil
 }
 
-func (api *V3) UnmountIsoImage(serverId string) (*MountIsoImageResponse, error) {
+// ISOイメージ排出
+func (api *V3) UnmountIsoImage(serverId uuid.UUID) (*MountIsoImageResponse, error) {
 	endpoint := api.Endpoints.Compute
 	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
 	body := `{
@@ -273,7 +146,8 @@ func (api *V3) UnmountIsoImage(serverId string) (*MountIsoImageResponse, error) 
 	return &v, nil
 }
 
-func (api *V3) publishConsoleUrl(serverId, protocol, typ string) (*PublishConsoleUrlResponse, error) {
+// コンソールURL発行
+func (api *V3) publishConsoleUrl(serverId uuid.UUID, protocol, typ string) (*PublishConsoleUrlResponse, error) {
 	endpoint := api.Endpoints.Compute
 	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/remote-consoles`, serverId)
 	body := fmt.Sprintf(`{
@@ -302,14 +176,153 @@ func (api *V3) publishConsoleUrl(serverId, protocol, typ string) (*PublishConsol
 	return &v, nil
 }
 
-func (api *V3) PublishConsoleUrlOnVnc(serverId string) (*PublishConsoleUrlResponse, error) {
+// コンソールURL発行(VNC)
+func (api *V3) PublishConsoleUrlOnVnc(serverId uuid.UUID) (*PublishConsoleUrlResponse, error) {
 	return api.publishConsoleUrl(serverId, "vnc", "novnc")
 }
 
-func (api *V3) PublishConsoleUrlOnSerial(serverId string) (*PublishConsoleUrlResponse, error) {
+// コンソールURL発行(シリアル)
+func (api *V3) PublishConsoleUrlOnSerial(serverId uuid.UUID) (*PublishConsoleUrlResponse, error) {
 	return api.publishConsoleUrl(serverId, "serial", "serial")
 }
 
-func (api *V3) PublishConsoleUrlOnWebSocket(serverId string) (*PublishConsoleUrlResponse, error) {
+// コンソールURL発行(WebSocket)
+func (api *V3) PublishConsoleUrlOnWebSocket(serverId uuid.UUID) (*PublishConsoleUrlResponse, error) {
 	return api.publishConsoleUrl(serverId, "web", "serial")
+}
+
+// サーバー一覧取得
+func (api *V3) GetServers() (*GetServersResponse, error) {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = "/v2.1/servers"
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Get()
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v GetServersResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+// サーバー操作(起動)
+func (api *V3) StartServer(serverId uuid.UUID) error {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
+	body := `{
+		"os-start": null
+	}`
+	client := annette.New(endpoint)
+	client.Header.Set("Content-Type", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus202() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
+}
+
+// サーバー操作(停止)
+func (api *V3) StopServer(serverId uuid.UUID) error {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
+	body := `{
+		"os-stop": null
+	}`
+	client := annette.New(endpoint)
+	client.Header.Set("Content-Type", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus202() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
+}
+
+// サーバー操作(再起動)
+func (api *V3) RebootServer(serverId uuid.UUID) error {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
+	body := `{
+		"reboot": {"type": "SOFT"}
+	}`
+	client := annette.New(endpoint)
+	client.Header.Set("Content-Type", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus202() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
+}
+
+// サーバー操作(強制停止)
+func (api *V3) ForceShutdownServer(serverId uuid.UUID) error {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s/action`, serverId)
+	body := `{
+		"os-stop": {"force_shutdown": true}
+	}`
+	client := annette.New(endpoint)
+	client.Header.Set("Content-Type", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Post(strings.NewReader(body))
+	if err != nil {
+		return err
+	}
+	if !res.IsStatus202() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	return nil
+}
+
+// サーバー詳細取得
+func (api *V3) GetServer(id uuid.UUID) (*GetServerResponse, error) {
+	endpoint := api.Endpoints.Compute
+	endpoint.Path = fmt.Sprintf(`/v2.1/servers/%s`, id)
+	client := annette.New(endpoint)
+	client.Header.Set("Accept", "application/json")
+	client.Header.Set("X-Auth-Token", api.Token)
+	res, err := client.Get()
+	if err != nil {
+		return nil, err
+	}
+	if !res.IsStatus200() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+	}
+	var v GetServerResponse
+	err = json.Unmarshal(res.Binary(), &v)
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
 }
