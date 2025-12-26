@@ -106,9 +106,7 @@ func (api *V3) MountIsoImage(serverId, imageId uuid.UUID) (*MountIsoImageRespons
 		return nil, err
 	}
 	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v MountIsoImageResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -134,9 +132,7 @@ func (api *V3) UnmountIsoImage(serverId uuid.UUID) (*MountIsoImageResponse, erro
 		return nil, err
 	}
 	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v MountIsoImageResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -164,9 +160,7 @@ func (api *V3) publishConsoleUrl(serverId uuid.UUID, protocol, typ string) (*Pub
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v PublishConsoleUrlResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -203,9 +197,7 @@ func (api *V3) GetServers() (*GetServersResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetServersResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -230,9 +222,7 @@ func (api *V3) StartServer(serverId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -252,9 +242,7 @@ func (api *V3) StopServer(serverId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -274,9 +262,7 @@ func (api *V3) RebootServer(serverId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -296,9 +282,7 @@ func (api *V3) ForceShutdownServer(serverId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus202() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -315,9 +299,7 @@ func (api *V3) GetServer(id uuid.UUID) (*GetServerResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetServerResponse
 	err = json.Unmarshal(res.Binary(), &v)

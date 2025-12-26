@@ -1,8 +1,16 @@
 package conoha
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"time"
+)
+
+const (
+	ErrInvalidParameter   = 2047
+	ErrNotInParentDomain  = 2101
+	ErrRecordSetDuplicate = 2110
 )
 
 type (
@@ -42,10 +50,6 @@ type (
 		S3            *url.URL `json:"s3,omitempty"`
 		Database      *url.URL `json:"url,omitempty"`
 	}
-	ConohaError struct {
-		Code  int    `json:"code"`
-		Error string `json:"error"`
-	}
 )
 
 func NewV3() *V3 {
@@ -66,4 +70,32 @@ func NewV2() *V2 {
 
 func toJst(t time.Time) time.Time {
 	return t.In(time.FixedZone("JST", 9*60*60))
+}
+
+func toError(body []byte) error {
+	var v any
+	err := json.Unmarshal(body, &v)
+	if err != nil {
+		return nil
+	}
+	code := 0
+	message := ""
+	for k1, v1 := range v.(map[string]any) {
+		if k1 == "code" {
+			switch v1.(string) {
+			case "InvalidParameter":
+				code = ErrInvalidParameter
+			case "NotInParentDomain":
+				code = ErrNotInParentDomain
+			case "RecordSetDuplicate":
+				code = ErrRecordSetDuplicate
+			default:
+				fmt.Printf(`Unknown Code: %s\n`, v1.(string))
+				fmt.Println(string(body))
+			}
+		} else if k1 == "message" {
+			message = v1.(string)
+		}
+	}
+	return fmt.Errorf(`Code:%d, Message:%s`, code, message)
 }
