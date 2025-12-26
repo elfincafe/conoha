@@ -1,7 +1,8 @@
-package v3
+package conoha
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -10,60 +11,50 @@ import (
 )
 
 func (api *V3) PublishTokenById(uri, userId, password, tenantId string) (*annette.Response, error) {
-	body := `
-		{
-			"auth": {
-				"identity": {
-					"methods": [
-						"password"
-					],
-					"password": {
-						"user": {
-						"id": "###USER_ID###",
-						"password": "###PASSWORD###"
-						}
+	body := fmt.Sprintf(`{
+		"auth": {
+			"identity": {
+				"methods": [
+					"password"
+				],
+				"password": {
+					"user": {
+					"id": "%s",
+					"password": "%s"
 					}
-				},
-				"scope": {
-					"project": {
-						"id": "###TENANT_ID###"
-					}
+				}
+			},
+			"scope": {
+				"project": {
+					"id": "%s"
 				}
 			}
 		}
-  	`
-	body = strings.ReplaceAll(body, "###USER_ID###", userId)
-	body = strings.ReplaceAll(body, "###PASSWORD###", password)
-	body = strings.ReplaceAll(body, "###TENANT_ID###", tenantId)
+  	}`, userId, password, tenantId)
 	return api.publishToken(uri, body)
 }
 
 func (api *V3) PublishTokenByName(uri, userName, password, tenantName string) (*annette.Response, error) {
-	body := `
-		{
-			"auth": {
-				"identity": {
-					"methods": [
-						"password"
-					],
-					"password": {
-						"user": {
-						"name": "###USER_NAME###",
-						"password": "###PASSWORD###"
-						}
+	body := fmt.Sprintf(`{
+		"auth": {
+			"identity": {
+				"methods": [
+					"password"
+				],
+				"password": {
+					"user": {
+					"name": "%s",
+					"password": "%s"
 					}
-				},
-				"scope": {
-					"project": {
-						"name": "###TENANT_NAME"
-					}
+				}
+			},
+			"scope": {
+				"project": {
+					"name": "%s"
 				}
 			}
 		}
-	`
-	body = strings.ReplaceAll(body, "###USER_NAME###", userName)
-	body = strings.ReplaceAll(body, "###PASSWORD###", password)
-	body = strings.ReplaceAll(body, "###TENANT_NAME###", tenantName)
+	}`, userName, password, tenantName)
 	return api.publishToken(uri, body)
 }
 
@@ -73,7 +64,7 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 		return nil, err
 	}
 	client := annette.New(u)
-	res, err := client.Post(body)
+	res, err := client.Post(strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +81,12 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 		}
 		for k2, v2 := range v1.(map[string]any) {
 			if k2 == "issued_at" {
-				api.IssuedAt, err = time.Parse(time.RFC3339Nano, v2.(string))
+				api.IssuedAt, _ = time.Parse(time.RFC3339Nano, v2.(string))
+				api.IssuedAt = toJst(api.IssuedAt)
 				continue
 			} else if k2 == "expires_at" {
-				api.ExpiredAt, err = time.Parse(time.RFC3339Nano, v2.(string))
+				api.ExpiredAt, _ = time.Parse(time.RFC3339Nano, v2.(string))
+				api.ExpiredAt = toJst(api.ExpiredAt)
 				continue
 			} else if k2 == "user" {
 				for k3, v3 := range v2.(map[string]any) {
@@ -114,20 +107,17 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 				}
 				continue
 			} else if k2 == "catalog" {
-				for _, v3 := range v2.([]map[string]any) {
-					for k4, v4 := range v3 {
-						typ := ""
-						if k4 == "type" {
-							typ = v4.(string)
-							continue
-						} else if k4 != "endpoints" {
-							continue
-						}
-						for k5, v5 := range v4.(map[string]string) {
+				for _, v3 := range v2.([]any) {
+					typ := ""
+					if _, ok := v3.(map[string]any)["type"]; ok {
+						typ = v3.(map[string]any)["type"].(string)
+					}
+					for _, v4 := range v3.(map[string]any)["endpoints"].([]any) {
+						for k5, v5 := range v4.(map[string]any) {
 							if k5 != "url" {
 								continue
 							}
-							u, _ := url.Parse(v5)
+							u, _ := url.Parse(v5.(string))
 							switch typ {
 							case "identity":
 								api.Endpoints.Identity = u
@@ -154,6 +144,5 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 			}
 		}
 	}
-
 	return res, nil
 }
