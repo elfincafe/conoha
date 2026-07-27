@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elfincafe/annette"
 	"github.com/google/uuid"
+	"github.com/tsukinoha/annette"
 )
 
 type (
@@ -46,7 +46,7 @@ type (
 			} `json:"flavor"`
 			Created   time.Time `json:"created"`
 			Updated   time.Time `json:"updated"`
-			Addresses map[string]struct {
+			Addresses map[string][]struct {
 				Version         int    `json:"version"`
 				Addr            string `json:"addr"`
 				OsExtIpsType    string `json:"OS-EXT-IPS:type"`
@@ -58,12 +58,12 @@ type (
 				Rel  string `json:"rel"`
 				Href string `json:"href"`
 			} `json:"links"`
-			OsDcfDiskConfig         string    `json:"OS-DCF:diskConfig"`
-			OsExtAzAvailabilityZone string    `json:"OS-EXT-AZ:availability_zone"`
-			ConfigDrive             string    `json:"config_drive"`
-			KeyName                 string    `json:"key_name"`
-			OsSrvUsgLaunchedAt      time.Time `json:"OS-SRV-USG:launched_at"`
-			OsSrvUsgTeminatedAt     time.Time `json:"OS-SRV-USG:terminated_at"`
+			OsDcfDiskConfig         string     `json:"OS-DCF:diskConfig"`
+			OsExtAzAvailabilityZone string     `json:"OS-EXT-AZ:availability_zone"`
+			ConfigDrive             string     `json:"config_drive"`
+			KeyName                 string     `json:"key_name"`
+			OsSrvUsgLaunchedAt      ConohaTime `json:"OS-SRV-USG:launched_at"`
+			OsSrvUsgTeminatedAt     ConohaTime `json:"OS-SRV-USG:terminated_at"`
 			SecurityGroups          []struct {
 				Name string `json:"name"`
 			} `json:"security_groups"`
@@ -105,6 +105,7 @@ func (api *V3) MountIsoImage(serverId, imageId uuid.UUID) (*MountIsoImageRespons
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(res.Body())
 	if !res.IsStatus202() {
 		return nil, toError(res.Binary())
 	}
@@ -131,6 +132,7 @@ func (api *V3) UnmountIsoImage(serverId uuid.UUID) (*MountIsoImageResponse, erro
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(res.Body())
 	if !res.IsStatus202() {
 		return nil, toError(res.Binary())
 	}
@@ -298,6 +300,7 @@ func (api *V3) GetServer(id uuid.UUID) (*GetServerResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(res.Body())
 	if !res.IsStatus200() {
 		return nil, toError(res.Binary())
 	}
