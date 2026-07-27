@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elfincafe/annette"
 	"github.com/google/uuid"
+	"github.com/tsukinoha/annette"
 )
 
 type (

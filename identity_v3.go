@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elfincafe/annette"
+	"github.com/tsukinoha/annette"
 )
 
 func (api *V3) PublishTokenById(uri, userId, password, tenantId string) (*annette.Response, error) {
@@ -67,6 +67,11 @@ func (api *V3) publishToken(uri, body string) (*annette.Response, error) {
 	res, err := client.Post(strings.NewReader(body))
 	if err != nil {
 		return nil, err
+	}
+	if !res.IsStatus200s() {
+		var v ConohaError
+		json.Unmarshal(res.Binary(), &v)
+		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
 	}
 	api.Token = res.GetHeader("x-subject-token")
 	// reading response body

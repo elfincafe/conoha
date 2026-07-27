@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elfincafe/annette"
 	"github.com/google/uuid"
+	"github.com/tsukinoha/annette"
 )
 
 type (
@@ -28,7 +28,7 @@ type (
 		Size                   int       `json:"size"`
 		VirtualSize            int       `json:"virtual_size"`
 		Status                 string    `json:"status"`
-		Checksum               int       `json:"checksum"`
+		Checksum               string    `json:"checksum"`
 		Protected              bool      `json:"protected"`
 		MinRam                 int       `json:"min_ram"`
 		MinDisk                int       `json:"min_disk"`
@@ -66,10 +66,12 @@ type (
 )
 
 func (api *V3) UploadIsoImage(imageId uuid.UUID, path string) error {
+	path = strings.Trim(path, " ")
 	endpoint := api.Endpoints.Image
 	endpoint.Path = fmt.Sprintf("/v2/images/%s/file", imageId)
 	f, err := os.Open(path)
 	if err != nil {
+		fmt.Println("Error1:", err)
 		return err
 	}
 	defer f.Close()

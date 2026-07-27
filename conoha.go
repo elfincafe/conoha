@@ -2,6 +2,7 @@ package conoha
 
 import (
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -46,6 +47,7 @@ type (
 		Code  int    `json:"code"`
 		Error string `json:"error"`
 	}
+	ConohaTime time.Time
 )
 
 func NewV3() *V3 {
@@ -66,4 +68,25 @@ func NewV2() *V2 {
 
 func toJst(t time.Time) time.Time {
 	return t.In(time.FixedZone("JST", 9*60*60))
+}
+
+func (ct *ConohaTime) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	if s == "null" {
+		return nil
+	}
+	s = strings.Trim(s, `"'`)
+	loc := time.FixedZone("JST", 9*60*60)
+	if t, err := time.ParseInLocation(time.RFC3339, s, loc); err == nil {
+		*ct = ConohaTime(t)
+	} else if t, err := time.ParseInLocation(time.RFC3339Nano, s, loc); err == nil {
+		*ct = ConohaTime(t)
+	} else if t, err := time.ParseInLocation(time.DateTime, s, loc); err == nil {
+		*ct = ConohaTime(t)
+	} else if t, err := time.ParseInLocation("2006-01-02T15:04:05.000000", s, loc); err == nil {
+		*ct = ConohaTime(t)
+	} else {
+		return err
+	}
+	return nil
 }
