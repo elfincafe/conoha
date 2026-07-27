@@ -84,9 +84,7 @@ func (api *V3) UploadIsoImage(imageId uuid.UUID, path string) error {
 		return err
 	}
 	if !res.IsStatus204() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -113,9 +111,7 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus201() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v CreateIsoImageResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -124,7 +120,7 @@ func (api *V3) CreateIsoImage(name string) (*CreateIsoImageResponse, error) {
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) GetImages(args map[string]string) (*GetImagesResponse, error) {
@@ -143,9 +139,7 @@ func (api *V3) GetImages(args map[string]string) (*GetImagesResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetImagesResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -156,7 +150,7 @@ func (api *V3) GetImages(args map[string]string) (*GetImagesResponse, error) {
 		v.Images[k].CreatedAt = toJst(i.CreatedAt)
 		v.Images[k].UpdatedAt = toJst(i.UpdatedAt)
 	}
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) GetUsedImageCapacity() (*GetUsedImageCapacityResponse, error) {
@@ -170,16 +164,14 @@ func (api *V3) GetUsedImageCapacity() (*GetUsedImageCapacityResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetUsedImageCapacityResponse
 	err = json.Unmarshal(res.Binary(), &v)
 	if err != nil {
 		return nil, err
 	}
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) GetImageCapacity() (*GetImageCapacityResponse, error) {
@@ -193,16 +185,14 @@ func (api *V3) GetImageCapacity() (*GetImageCapacityResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetImageCapacityResponse
 	err = json.Unmarshal(res.Binary(), &v)
 	if err != nil {
 		return nil, err
 	}
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) UpdateImageCapacity(imageSize string) (*UpdateImageCapacityResponse, error) {
@@ -219,16 +209,14 @@ func (api *V3) UpdateImageCapacity(imageSize string) (*UpdateImageCapacityRespon
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v UpdateImageCapacityResponse
 	err = json.Unmarshal(res.Binary(), &v)
 	if err != nil {
 		return nil, err
 	}
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) DeleteImage(imageId uuid.UUID) error {
@@ -242,9 +230,7 @@ func (api *V3) DeleteImage(imageId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -260,14 +246,12 @@ func (api *V3) GetImage(imageId uuid.UUID) (*GetImageResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetImageResponse
 	err = json.Unmarshal(res.Binary(), &v)
 	if err != nil {
 		return nil, err
 	}
-	return &v, err
+	return &v, nil
 }

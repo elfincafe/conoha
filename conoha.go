@@ -1,9 +1,17 @@
 package conoha
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
+)
+
+const (
+	ErrInvalidParameter   = 2047
+	ErrNotInParentDomain  = 2101
+	ErrRecordSetDuplicate = 2110
 )
 
 type (
@@ -89,4 +97,32 @@ func (ct *ConohaTime) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	return nil
+}
+
+func toError(body []byte) error {
+	var v any
+	err := json.Unmarshal(body, &v)
+	if err != nil {
+		return nil
+	}
+	code := 0
+	message := ""
+	for k1, v1 := range v.(map[string]any) {
+		if k1 == "code" {
+			switch v1.(string) {
+			case "InvalidParameter":
+				code = ErrInvalidParameter
+			case "NotInParentDomain":
+				code = ErrNotInParentDomain
+			case "RecordSetDuplicate":
+				code = ErrRecordSetDuplicate
+			default:
+				fmt.Printf(`Unknown Code: %s\n`, v1.(string))
+				fmt.Println(string(body))
+			}
+		} else if k1 == "message" {
+			message = v1.(string)
+		}
+	}
+	return fmt.Errorf(`Code:%d, Message:%s`, code, message)
 }

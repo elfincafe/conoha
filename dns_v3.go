@@ -3,7 +3,6 @@ package conoha
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,7 +12,7 @@ import (
 )
 
 type (
-	domain struct {
+	Domain struct {
 		Uuid      uuid.UUID `json:"uuid"`
 		Name      string    `json:"name"`
 		ProjectId string    `json:"project_id"`
@@ -23,7 +22,7 @@ type (
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 	}
-	record struct {
+	Record struct {
 		Uuid       uuid.UUID `json:"uuid"`
 		DomainUuid uuid.UUID `json:"domain_uuid"`
 		Name       string    `json:"name"`
@@ -45,19 +44,19 @@ type (
 		Port     string `json:"port,omitempty"`
 	}
 	GetDomainsResponse struct {
-		Domains    []domain `json:"domains"`
+		Domains    []Domain `json:"domains"`
 		TotalCount int      `json:"total_count"`
 	}
-	UpdateDomainResponse domain
-	CreateDomainResponse domain
-	GetDomainResponse    domain
+	UpdateDomainResponse Domain
+	CreateDomainResponse Domain
+	GetDomainResponse    Domain
 	GetRecordsResponse   struct {
-		Records    []record `json:"records"`
+		Records    []Record `json:"records"`
 		TotalCount int      `json:"total_count"`
 	}
-	CreateRecordResponse record
-	UpdateRecordResponse record
-	GetRecordResponse    record
+	CreateRecordResponse Record
+	UpdateRecordResponse Record
+	GetRecordResponse    Record
 )
 
 func (api *V3) GetDomains(limit, offset int, sort, key string) (*GetDomainsResponse, error) {
@@ -88,9 +87,7 @@ func (api *V3) GetDomains(limit, offset int, sort, key string) (*GetDomainsRespo
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetDomainsResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -101,7 +98,7 @@ func (api *V3) GetDomains(limit, offset int, sort, key string) (*GetDomainsRespo
 		v.Domains[k].CreatedAt = toJst(d.CreatedAt)
 		v.Domains[k].UpdatedAt = toJst(d.UpdatedAt)
 	}
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) DeleteDomain(domainId uuid.UUID) error {
@@ -115,9 +112,7 @@ func (api *V3) DeleteDomain(domainId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus204() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -138,9 +133,7 @@ func (api *V3) UpdateDomain(domainId uuid.UUID, email string, ttl int) (*UpdateD
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v UpdateDomainResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -149,12 +142,13 @@ func (api *V3) UpdateDomain(domainId uuid.UUID, email string, ttl int) (*UpdateD
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) CreateDomain(domain, email string, ttl int) (*CreateDomainResponse, error) {
 	endpoint := api.Endpoints.Dns
 	endpoint.Path = "/v1/domains"
+	domain = strings.Trim(domain, "\r\n\t\v .") + "."
 	body := fmt.Sprintf(`{
 		"name":"%s",
 		"ttl": %d,
@@ -169,9 +163,7 @@ func (api *V3) CreateDomain(domain, email string, ttl int) (*CreateDomainRespons
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v CreateDomainResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -180,7 +172,7 @@ func (api *V3) CreateDomain(domain, email string, ttl int) (*CreateDomainRespons
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) GetDomain(domainId uuid.UUID) (*GetDomainResponse, error) {
@@ -194,9 +186,7 @@ func (api *V3) GetDomain(domainId uuid.UUID) (*GetDomainResponse, error) {
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetDomainResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -205,7 +195,7 @@ func (api *V3) GetDomain(domainId uuid.UUID) (*GetDomainResponse, error) {
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) GetRecords(domainId uuid.UUID, limit, offset int, sort, key string) (*GetRecordsResponse, error) {
@@ -236,9 +226,7 @@ func (api *V3) GetRecords(domainId uuid.UUID, limit, offset int, sort, key strin
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetRecordsResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -249,22 +237,13 @@ func (api *V3) GetRecords(domainId uuid.UUID, limit, offset int, sort, key strin
 		v.Records[k].CreatedAt = toJst(r.CreatedAt)
 		v.Records[k].UpdatedAt = toJst(r.UpdatedAt)
 	}
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, weight, port string) (*CreateRecordResponse, error) {
 	req := recordRequest{}
-	// Validate
-	if name == "" {
-		return nil, errors.New(`argument "name" is required`)
-	} else {
-		req.Name = name
-	}
-	if data == "" {
-		return nil, errors.New(`argument "data" is required`)
-	} else {
-		req.Data = data
-	}
+	req.Name = strings.Trim(name, "\r\n\t\v .") + "."
+	req.Data = data
 	recType = strings.ToUpper(recType)
 	switch recType {
 	case "A", "AAAA", "CNAME", "NS", "TXT":
@@ -278,9 +257,8 @@ func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, w
 		req.Weight = weight
 		req.Port = port
 	default:
-		return nil, fmt.Errorf(`unknown record type "%s"`, recType)
+		req.Type = recType
 	}
-
 	endpoint := api.Endpoints.Dns
 	endpoint.Path = fmt.Sprintf(`/v1/domains/%s/records`, domainId)
 	body, err := json.Marshal(req)
@@ -296,9 +274,7 @@ func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, w
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v CreateRecordResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -307,7 +283,7 @@ func (api *V3) CreateRecord(domainId uuid.UUID, name, recType, data, priority, w
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) DeleteRecord(domainId, recordId uuid.UUID) error {
@@ -321,9 +297,7 @@ func (api *V3) DeleteRecord(domainId, recordId uuid.UUID) error {
 		return err
 	}
 	if !res.IsStatus204() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return toError(res.Binary())
 	}
 	return nil
 }
@@ -338,12 +312,12 @@ func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, p
 
 	// request data
 	req := recordRequest{}
+	name = strings.Trim(name, "\r\n\t\v .")
 	if name != "" {
-		req.Name = name
+		name += "."
 	}
-	if data != "" {
-		req.Data = data
-	}
+	req.Name = name
+	req.Data = data
 	recType = strings.ToUpper(recType)
 	switch recType {
 	case "A", "AAAA", "CNAME", "NS", "TXT":
@@ -357,7 +331,7 @@ func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, p
 		req.Weight = weight
 		req.Port = port
 	default:
-		return nil, fmt.Errorf(`unknown record type "%s"`, recType)
+		req.Type = recType
 	}
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -368,9 +342,7 @@ func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, p
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v UpdateRecordResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -379,7 +351,7 @@ func (api *V3) UpdateRecord(domainId, recordId uuid.UUID, name, recType, data, p
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
 
 func (api *V3) GetRecord(domainId, recordId uuid.UUID) (*GetRecordResponse, error) {
@@ -393,9 +365,7 @@ func (api *V3) GetRecord(domainId, recordId uuid.UUID) (*GetRecordResponse, erro
 		return nil, err
 	}
 	if !res.IsStatus200() {
-		var v ConohaError
-		json.Unmarshal(res.Binary(), &v)
-		return nil, fmt.Errorf("status:%d, error:%s", v.Code, v.Error)
+		return nil, toError(res.Binary())
 	}
 	var v GetRecordResponse
 	err = json.Unmarshal(res.Binary(), &v)
@@ -404,5 +374,5 @@ func (api *V3) GetRecord(domainId, recordId uuid.UUID) (*GetRecordResponse, erro
 	}
 	v.CreatedAt = toJst(v.CreatedAt)
 	v.UpdatedAt = toJst(v.UpdatedAt)
-	return &v, err
+	return &v, nil
 }
